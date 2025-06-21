@@ -34,6 +34,27 @@ int strcmp(const char *s1, const char *s2) {
     return *(unsigned char *)s1 - *(unsigned char *)s2;
 }
 
+size_t strlen(const char *s) {
+    const char *p = s;
+    while (*p) p++;
+    return p - s;
+}
+
+char *strstr(const char *haystack, const char *needle) {
+    if (!*needle) return (char *)haystack;
+
+    for (const char *p = haystack; *p; p++) {
+        const char *h = p;
+        const char *n = needle;
+        while (*h && *n && *h == *n) {
+            h++;
+            n++;
+        }
+        if (!*n) return (char *)p;
+    }
+    return NULL;
+}
+
 void putchar(char ch);
 
 void printf(const char *fmt, ...) {
