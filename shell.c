@@ -72,6 +72,12 @@ prompt:
             printf("Hello world from shell!\n");
         else if (strcmp(cmdline, "exit") == 0)
             exit();
+        else if (strcmp(cmdline, "help") == 0) {
+            printf("\n=== RISC-V OS Shell 命令說明 ===\n");
+            printf("hello  - 顯示歡迎訊息\n");
+            printf("exit   - 結束程式\n");
+            printf("help   - 顯示此說明\n");
+        }
         else
             printf("unknown command: %s\n", cmdline);
     }
