@@ -16,6 +16,17 @@
 #define SYS_EXIT    3
 #define SYS_GETCHAR_NONBLOCK 100
 
+// LLM 相關常數
+#define LLM_REQUEST_FILE  0
+#define LLM_RESPONSE_FILE 1
+#define LLM_STATUS_FILE   2
+#define LLM_MAX_MSG_SIZE  512
+
+// LLM 系統呼叫號碼
+#define SYS_LLM_SEND_REQUEST  200
+#define SYS_LLM_GET_RESPONSE  201
+#define SYS_LLM_SIMULATE      202
+
 typedef int bool;
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;

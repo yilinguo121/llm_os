@@ -1,6 +1,11 @@
 #include "kernel.h"
 #include "common.h"
 
+// LLM 函數前向宣告
+void llm_write_file(int file_id, const char *data);
+void llm_read_file(int file_id, char *buffer);
+void llm_simulate_response(const char *input, char *response);
+
 #define UART_BASE 0x10000000
 #define UART_RHR  0x00 // 接收暫存器
 #define UART_LSR  0x05 // Line Status Register
@@ -344,9 +349,58 @@ void handle_syscall(struct trap_frame *f) {
             }
             break;
         case SYS_GETCHAR_NONBLOCK:
+            f->a0 = getchar_raw();
+            break;
+
+        // LLM 相關系統呼叫
+        case 200: // SYS_LLM_SEND_REQUEST
             {
-                int ch = getchar_raw();
-                f->a0 = ch;
+                char request[LLM_MAX_MSG_SIZE];
+                char *user_request = (char*)f->a0;
+                strcpy(request, user_request);
+                llm_write_file(LLM_REQUEST_FILE, request);
+                llm_write_file(LLM_STATUS_FILE, "request_sent");
+                f->a0 = 0; // 成功
+            }
+            break;
+
+        case 201: // SYS_LLM_GET_RESPONSE
+            {
+                char response[LLM_MAX_MSG_SIZE];
+                char status[64];
+                llm_read_file(LLM_STATUS_FILE, status);
+
+                // 清理狀態字串，移除 null bytes
+                for (int i = 0; i < 63; i++) {
+                    if (status[i] == '\0') {
+                        status[i] = '\0';
+                        break;
+                    }
+                }
+
+                if (strcmp(status, "response_ready") == 0) {
+                    llm_read_file(LLM_RESPONSE_FILE, response);
+                    char *user_buffer = (char*)f->a0;
+                    strcpy(user_buffer, response);
+                    llm_write_file(LLM_STATUS_FILE, "idle");
+                    f->a0 = 1; // 有回應
+                } else {
+                    f->a0 = 0; // 無回應
+                }
+            }
+            break;
+
+        case 202: // SYS_LLM_SIMULATE
+            {
+                char request[LLM_MAX_MSG_SIZE];
+                char response[LLM_MAX_MSG_SIZE];
+                char *user_request = (char*)f->a0;
+                char *user_response = (char*)f->a1;
+
+                strcpy(request, user_request);
+                llm_simulate_response(request, response);
+                strcpy(user_response, response);
+                f->a0 = 0; // 成功
             }
             break;
         case SYS_EXIT:
@@ -519,6 +573,10 @@ void kernel_main(void) {
     strcpy(buf, "hello from kernel!!!\n");
     read_write_disk(buf, 0, true /* 写入磁盘 */);
 
+    // 初始化 LLM 檔案系統
+    llm_write_file(LLM_STATUS_FILE, "idle");
+    printf("LLM 檔案系統已初始化\n");
+
     idle_proc = create_process(NULL, 0);
     idle_proc->pid = -1;
     current_proc = idle_proc;
@@ -538,5 +596,58 @@ void boot(void) {
         :
         : [stack_top] "r" (__stack_top)
     );
+}
+
+// LLM 檔案操作函數
+void llm_write_file(int file_id, const char *data) {
+    char filename[32];
+    if (file_id == LLM_REQUEST_FILE) {
+        strcpy(filename, "llm_request.txt");
+    } else if (file_id == LLM_RESPONSE_FILE) {
+        strcpy(filename, "llm_response.txt");
+    } else if (file_id == LLM_STATUS_FILE) {
+        strcpy(filename, "llm_status.txt");
+    } else {
+        return;
+    }
+
+    // 寫入到磁碟的第一個磁區（模擬檔案系統）
+    char buffer[SECTOR_SIZE];
+    memset(buffer, 0, SECTOR_SIZE);
+    strcpy(buffer, data);
+    read_write_disk(buffer, file_id, true); // 寫入
+}
+
+void llm_read_file(int file_id, char *buffer) {
+    char filename[32];
+    if (file_id == LLM_REQUEST_FILE) {
+        strcpy(filename, "llm_request.txt");
+    } else if (file_id == LLM_RESPONSE_FILE) {
+        strcpy(filename, "llm_response.txt");
+    } else if (file_id == LLM_STATUS_FILE) {
+        strcpy(filename, "llm_status.txt");
+    } else {
+        return;
+    }
+
+    // 從磁碟讀取（模擬檔案系統）
+    char disk_buffer[SECTOR_SIZE];
+    read_write_disk(disk_buffer, file_id, false); // 讀取
+    strcpy(buffer, disk_buffer);
+}
+
+// 模擬 LLM 回應（暫時使用）
+void llm_simulate_response(const char *input, char *response) {
+    if (strstr(input, "你好") || strstr(input, "hello")) {
+        strcpy(response, "你好！我是基於 RISC-V OS 的 AI 助手。");
+    } else if (strstr(input, "幫助") || strstr(input, "help")) {
+        strcpy(response, "我可以幫助你了解這個作業系統，或者回答一些基本問題。");
+    } else if (strstr(input, "系統") || strstr(input, "system")) {
+        strcpy(response, "這是一個 RISC-V 32位元作業系統，支援多工處理、虛擬記憶體和檔案系統。");
+    } else if (strstr(input, "謝謝") || strstr(input, "thank")) {
+        strcpy(response, "不客氣！還有什麼我可以幫助你的嗎？");
+    } else {
+        strcpy(response, "我理解你的輸入，這很有趣！請告訴我更多。");
+    }
 }
 
