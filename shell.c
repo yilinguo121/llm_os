@@ -113,13 +113,13 @@ void llm_mode() {
         int retry_count = 0;
         int has_response = 0;
 
-        while (retry_count < 50) { // 最多等待 5 秒
+        while (retry_count < 20000) { // 最多等待 20 秒
             has_response = syscall(201, (int)response, 0, 0); // SYS_LLM_GET_RESPONSE
             if (has_response) {
                 break;
             }
             // 簡單延遲
-            for (volatile int i = 0; i < 100000; i++);
+            for (volatile int i = 0; i < 1000000; i++);
             retry_count++;
         }
 

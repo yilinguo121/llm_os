@@ -8,6 +8,7 @@ import os
 import time
 import struct
 from typing import Optional
+import openai
 
 SECTOR_SIZE = 512
 
@@ -15,6 +16,7 @@ class LLMHostService:
     def __init__(self, disk_file="lorem.txt"):
         self.disk_file = disk_file
         self.last_status = ""
+        self.openai_api_key = os.getenv("OPENAI_API_KEY")
 
     def read_sector(self, sector_num: int) -> bytes:
         """讀取指定 sector 的內容"""
@@ -62,23 +64,24 @@ class LLMHostService:
         self.write_sector(2, status.encode('utf-8'))
 
     def simulate_llm_response(self, request: str) -> str:
-        """模擬 LLM 回應（暫時使用）"""
-        request_lower = request.lower()
-
-        if "你好" in request or "hello" in request_lower:
-            return "你好！我是基於 RISC-V OS 的 AI 助手。很高興與你對話！"
-        elif "幫助" in request or "help" in request_lower:
-            return "我可以幫助你了解這個作業系統，或者回答一些基本問題。請告訴我你想了解什麼？"
-        elif "系統" in request or "system" in request_lower:
-            return "這是一個 RISC-V 32位元作業系統，支援多工處理、虛擬記憶體、檔案系統和 LLM 對話功能。"
-        elif "謝謝" in request or "thank" in request_lower:
-            return "不客氣！還有什麼我可以幫助你的嗎？"
-        elif "測試" in request or "test" in request_lower:
-            return "LLM 對話模式測試成功！Host-Guest 檔案交換機制運作正常。"
-        elif "時間" in request or "time" in request_lower:
-            return f"現在時間是：{time.strftime('%Y-%m-%d %H:%M:%S')}"
-        else:
-            return f"我理解你的問題：「{request}」。這很有趣！請告訴我更多細節，我會盡力幫助你。"
+        """只呼叫新版 OpenAI API，失敗就顯示錯誤，不再有模擬回應"""
+        if not openai or not self.openai_api_key:
+            return "[錯誤] OpenAI API 未正確設定，請確認已安裝 openai 套件並設置 OPENAI_API_KEY。"
+        try:
+            client = openai.OpenAI(api_key=self.openai_api_key)
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "你是 RISC-V OS 的 AI 助手，請用繁體中文回答。"},
+                    {"role": "user", "content": request}
+                ],
+                max_tokens=256,
+                temperature=0.7
+            )
+            reply = response.choices[0].message.content.strip()
+            return reply
+        except Exception as e:
+            return f"[OpenAI API 錯誤] {e}"
 
     def process_requests(self):
         """處理請求的主迴圈"""
