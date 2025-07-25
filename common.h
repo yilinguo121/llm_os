@@ -38,7 +38,6 @@ typedef uint32_t vaddr_t;
 
 void *memset(void *buf, char c, size_t n);
 void *memcpy(void *dst, const void *src, size_t n);
-void map_page(uint32_t *table1, uint32_t vaddr, paddr_t paddr, uint32_t flags);
 char *strcpy(char *dst, const char *src);
 int strcmp(const char *s1, const char *s2);
 size_t strlen(const char *s);
