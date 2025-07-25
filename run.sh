@@ -26,7 +26,7 @@ $OBJCOPY --set-section-flags .bss=alloc,contents -O binary shell.elf shell.bin
 $OBJCOPY -I binary -O elf32-littleriscv shell.bin shell.bin.o
 
 # 構建內核，並將用戶程序 (shell.bin.o) 嵌入內核映像中
-$CC $CFLAGS -Wl,-Tkernel.ld -Wl,-Map=kernel.map -o kernel.elf kernel.c mm.c common.c shell.bin.o
+$CC $CFLAGS -Wl,-Tkernel.ld -Wl,-Map=kernel.map -o kernel.elf kernel.c mm.c virtio.c common.c shell.bin.o
 
 # 啟動 QEMU，運行內核映像
 $QEMU -machine virt \

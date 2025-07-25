@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include "virtio.h"
 
 #define PROCS_MAX 8
 #define PROC_UNUSED   0
@@ -41,8 +42,6 @@
 #define VIRTQ_AVAIL_F_NO_INTERRUPT 1
 #define VIRTIO_BLK_T_IN  0
 #define VIRTIO_BLK_T_OUT 1
-
-struct virtio_virtq *virtq_init(unsigned index);
 
 struct process {
     int pid; // -1 if it's an idle process
